@@ -28,11 +28,13 @@ typedef unsigned char cell_t;
 typedef struct {
     int id;
     int startl, endl;
-    int size;
-    cell_t **board, **newboard;
+    int size, steps;
 } thread_arg, *ptr_thread_arg;
 
 const int NUM_THREADS = 4;
+pthread_barrier_t barrier;
+
+cell_t **prev, **next, **tmp;
 
 cell_t **allocate_board (int size) {
 	cell_t **board = (cell_t **) malloc(size * sizeof(cell_t*));
@@ -77,40 +79,34 @@ int adjacent_to(cell_t **board, int size, int i, int j) {
 void* play_thread(void *arg) {
     ptr_thread_arg t_arg = (ptr_thread_arg) arg;
     
-    /* for each cell, apply the rules of Life */
-	for (int i = t_arg->startl; i < t_arg->endl; i++) {
-		for (int j = 0; j < t_arg->size; j++) {
-			int a = adjacent_to(t_arg->board, t_arg->size, i, j);
-			
-			if (a == 2) t_arg->newboard[i][j] = t_arg->board[i][j];
-			if (a == 3) t_arg->newboard[i][j] = 1;
-			if (a < 2) t_arg->newboard[i][j] = 0;
-			if (a > 3) t_arg->newboard[i][j] = 0;
-		}
-	}
-}
-
-void play(cell_t **board, cell_t **newboard, int size) {
-	pthread_t threads[NUM_THREADS];
-	thread_arg args[NUM_THREADS];
-	
-	for (int i = 0; i < NUM_THREADS; ++i) {
-		args[i].id = i;
-		
-		args[i].size = size;
-		
-		args[i].board = board;
-		args[i].newboard = newboard;
-		
-		args[i].startl = (int) ((1.0f * size / NUM_THREADS) * i);
-		args[i].endl = (int) ((1.0f * size / NUM_THREADS) * (i + 1));
-		
-		pthread_create(&(threads[i]), NULL, play_thread, &(args[i]));
-	}
-	
-	for (int i = 0; i < NUM_THREADS; ++i) {
-		pthread_join(threads[i], NULL);
-	}
+    for (int k = 0; k < t_arg->steps; ++k) {
+        /* for each cell, apply the rules of Life */
+    	for (int i = t_arg->startl; i < t_arg->endl; i++) {
+    		for (int j = 0; j < t_arg->size; j++) {
+    			int a = adjacent_to(prev, t_arg->size, i, j);
+    			
+    			if (a == 2) next[i][j] = prev[i][j];
+    			if (a == 3) next[i][j] = 1;
+    			if (a < 2) next[i][j] = 0;
+    			if (a > 3) next[i][j] = 0;
+    		}
+    	}
+    	
+    	pthread_barrier_wait(&barrier);
+    	
+    	if (t_arg->id == 0) {
+        	#ifdef DEBUG
+    		printf("%d ----------\n", i);
+    		print(next, size);
+    		#endif
+    		
+    		tmp = next;
+    		next = prev;
+    		prev = tmp;
+    	}
+    	
+    	pthread_barrier_wait(&barrier);
+    }
 }
 
 /* print the life board */
@@ -159,13 +155,12 @@ int main() {
 
     fscanf(f, "%d %d", &size, &steps);
 	
-	cell_t **prev = allocate_board(size);
+	prev = allocate_board(size);
 	read_file(f, prev, size);
 	
 	fclose(f);
 	
-	cell_t **next = allocate_board(size);
-	cell_t **tmp;
+	next = allocate_board(size);
 	int i, j;
 	
 	#ifdef DEBUG
@@ -174,25 +169,37 @@ int main() {
 	printf("----------\n");
 	#endif
 	
+	pthread_t threads[NUM_THREADS];
+	thread_arg args[NUM_THREADS];
+	
+	pthread_barrier_init(&barrier, NULL, NUM_THREADS);
+	
+	for (int i = 0; i < NUM_THREADS; ++i) {
+		args[i].id = i;
+		
+		args[i].size = size;
+		args[i].steps = steps;
+		
+		args[i].startl = (int) ((1.0f * size / NUM_THREADS) * i);
+		args[i].endl = (int) ((1.0f * size / NUM_THREADS) * (i + 1));
+	}
+	
 	start = high_resolution_clock::now();
 
-	for (i = 0; i < steps; i++) {
-		play(prev, next, size);
-		
-		#ifdef DEBUG
-		printf("%d ----------\n", i);
-		print(next, size);
-		#endif
-		
-		tmp = next;
-		next = prev;
-		prev = tmp;
+	for (int i = 0; i < NUM_THREADS; ++i) {
+	    pthread_create(&(threads[i]), NULL, play_thread, &(args[i]));
+	}
+	
+	for (int i = 0; i < NUM_THREADS; ++i) {
+		pthread_join(threads[i], NULL);
 	}
 	
     end = high_resolution_clock::now();
     
     long dif = duration_cast<nanoseconds>(end - start).count();
     printf("Elasped time: %ld nanoseconds.\n", dif);
+    
+    pthread_barrier_destroy(&barrier);
 	
 	print(prev,size);
 	free_board(prev,size);

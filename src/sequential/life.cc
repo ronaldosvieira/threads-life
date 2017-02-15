@@ -15,10 +15,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <chrono>
 
 using std::cin;
 using std::cout;
 using std::endl;
+using namespace std::chrono;
 
 typedef unsigned char cell_t; 
 
@@ -41,7 +43,6 @@ void free_board(cell_t **board, int size) {
     
 	free(board);
 }
-
 
 /* return the number of on cells adjacent to the i,j cell */
 int adjacent_to(cell_t **board, int size, int i, int j) {
@@ -117,6 +118,7 @@ void read_file(FILE *f, cell_t **board, int size) {
 }
 
 int main() {
+    high_resolution_clock::time_point start, end;
 	int size, steps;
 	FILE *f;
     
@@ -138,6 +140,8 @@ int main() {
 	print(prev, size);
 	printf("----------\n");
 	#endif
+	
+	start = high_resolution_clock::now();
 
 	for (i = 0; i < steps; i++) {
 		play(prev,next,size);
@@ -151,6 +155,11 @@ int main() {
 		next = prev;
 		prev = tmp;
 	}
+	
+    end = high_resolution_clock::now();
+    
+    long dif = duration_cast<nanoseconds>(end - start).count();
+    printf("Elasped time: %ld nanoseconds.\n", dif);
 	
 	print(prev,size);
 	free_board(prev,size);

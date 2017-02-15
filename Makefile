@@ -9,5 +9,5 @@ SEQB = $(BINF)sequential
 PARB = $(BINF)parallel
 
 all:
-	g++ $(FLAGS) $(SEQS)/life.cc -o $(SEQB)/life
-	#g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life -lpthread
+	g++ $(FLAGS) $(SEQS)/life.cc -o $(SEQB)/life.o
+	#g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life.o -lpthread

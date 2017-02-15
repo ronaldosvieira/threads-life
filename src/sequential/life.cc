@@ -122,7 +122,7 @@ int main() {
 	int size, steps;
 	FILE *f;
     
-    f = fopen("examples/1", "r");
+    f = fopen("examples/1000,100", "r");
 
     fscanf(f, "%d %d", &size, &steps);
 	

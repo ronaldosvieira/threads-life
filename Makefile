@@ -1,6 +1,6 @@
 SRCF = src/
 BINF = bin/
-FLAGS = -O3 -g3 -std=c++11
+FLAGS = -O3 -g3 -std=c++11 -Wno-unused-result
 
 SEQS = $(SRCF)sequential
 PARS = $(SRCF)parallel
@@ -10,4 +10,4 @@ PARB = $(BINF)parallel
 
 all:
 	g++ $(FLAGS) $(SEQS)/life.cc -o $(SEQB)/life
-	g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life -lpthread
+	#g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life -lpthread

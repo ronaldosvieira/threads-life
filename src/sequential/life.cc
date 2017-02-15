@@ -161,7 +161,7 @@ int main() {
     long dif = duration_cast<nanoseconds>(end - start).count();
     printf("Elasped time: %ld nanoseconds.\n", dif);
 	
-	print(prev,size);
+	//print(prev,size);
 	free_board(prev,size);
 	free_board(next,size);
 }

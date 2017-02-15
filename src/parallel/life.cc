@@ -201,7 +201,7 @@ int main() {
     
     pthread_barrier_destroy(&barrier);
 	
-	print(prev,size);
+	//print(prev,size);
 	free_board(prev,size);
 	free_board(next,size);
 }

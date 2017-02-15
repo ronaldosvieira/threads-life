@@ -10,4 +10,4 @@ PARB = $(BINF)parallel
 
 all:
 	g++ $(FLAGS) $(SEQS)/life.cc -o $(SEQB)/life.o
-	#g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life.o -lpthread
+	g++ $(FLAGS) $(PARS)/life.cc -o $(PARB)/life.o -lpthread

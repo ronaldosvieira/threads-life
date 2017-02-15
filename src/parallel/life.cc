@@ -16,13 +16,23 @@
 #include <stdlib.h>
 #include <iostream>
 #include <chrono>
+#include <pthread.h>
 
 using std::cin;
 using std::cout;
 using std::endl;
 using namespace std::chrono;
 
-typedef unsigned char cell_t; 
+typedef unsigned char cell_t;
+
+typedef struct {
+    int id;
+    int startl, endl;
+    int size;
+    cell_t **board, **newboard;
+} thread_arg, *ptr_thread_arg;
+
+const int NUM_THREADS = 4;
 
 cell_t **allocate_board (int size) {
 	cell_t **board = (cell_t **) malloc(size * sizeof(cell_t*));
@@ -64,19 +74,42 @@ int adjacent_to(cell_t **board, int size, int i, int j) {
 	return count;
 }
 
-void play(cell_t **board, cell_t **newboard, int size) {
-	int	i, j, a;
-	
-	/* for each cell, apply the rules of Life */
-	for (i = 0; i < size; i++) {
-		for (j = 0; j < size; j++) {
-			a = adjacent_to(board, size, i, j);
+void* play_thread(void *arg) {
+    ptr_thread_arg t_arg = (ptr_thread_arg) arg;
+    
+    /* for each cell, apply the rules of Life */
+	for (int i = t_arg->startl; i < t_arg->endl; i++) {
+		for (int j = 0; j < t_arg->size; j++) {
+			int a = adjacent_to(t_arg->board, t_arg->size, i, j);
 			
-			if (a == 2) newboard[i][j] = board[i][j];
-			if (a == 3) newboard[i][j] = 1;
-			if (a < 2) newboard[i][j] = 0;
-			if (a > 3) newboard[i][j] = 0;
+			if (a == 2) t_arg->newboard[i][j] = t_arg->board[i][j];
+			if (a == 3) t_arg->newboard[i][j] = 1;
+			if (a < 2) t_arg->newboard[i][j] = 0;
+			if (a > 3) t_arg->newboard[i][j] = 0;
 		}
+	}
+}
+
+void play(cell_t **board, cell_t **newboard, int size) {
+	pthread_t threads[NUM_THREADS];
+	thread_arg args[NUM_THREADS];
+	
+	for (int i = 0; i < NUM_THREADS; ++i) {
+		args[i].id = i;
+		
+		args[i].size = size;
+		
+		args[i].board = board;
+		args[i].newboard = newboard;
+		
+		args[i].startl = (int) ((1.0f * size / NUM_THREADS) * i);
+		args[i].endl = (int) ((1.0f * size / NUM_THREADS) * (i + 1));
+		
+		pthread_create(&(threads[i]), NULL, play_thread, &(args[i]));
+	}
+	
+	for (int i = 0; i < NUM_THREADS; ++i) {
+		pthread_join(threads[i], NULL);
 	}
 }
 
@@ -144,7 +177,7 @@ int main() {
 	start = high_resolution_clock::now();
 
 	for (i = 0; i < steps; i++) {
-		play(prev,next,size);
+		play(prev, next, size);
 		
 		#ifdef DEBUG
 		printf("%d ----------\n", i);
